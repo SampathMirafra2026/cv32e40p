@@ -165,3 +165,43 @@ set_input_delay  $in_delay_other        [get_ports $all_other_input_ports  ] -cl
 
 set_output_delay $out_delay_other       [get_ports $all_other_output_ports ] -clock clk_i
 set_output_delay $out_delay_core_sleep  [ get_ports core_sleep_o           ] -clock clk_i
+
+############## Design Rule Constraints (DRVs) ##################
+#                                                              #
+# The values below are technology/library dependent and must   #
+# be tuned to the target standard-cell library. Update the     #
+# driving cell name, pin, and library as needed.               #
+#                                                              #
+################################################################
+
+# Technology-dependent parameters (adjust per target library)
+set drv_lib_name       "target_lib"
+set drv_driving_cell   "BUFX4"
+set drv_driving_pin    "Z"
+set drv_input_trans    0.150
+set drv_output_load    0.050
+set drv_max_transition 0.400
+set drv_max_capacitance 0.200
+set drv_max_fanout     16
+
+# --- Input DRVs -------------------------------------------------
+# Model realistic input slew via a driving cell on all inputs
+# except the clock port(s), which is ideal.
+set drv_input_ports [remove_from_collection [all_inputs] [get_ports $all_clock_ports]]
+
+set_driving_cell -lib_cell $drv_driving_cell -pin $drv_driving_pin \
+                 -library  $drv_lib_name \
+                 [get_ports $drv_input_ports]
+
+# Explicit input transition (used if no driving cell library is loaded)
+set_input_transition $drv_input_trans [get_ports $drv_input_ports]
+
+# --- Output DRVs ------------------------------------------------
+# Assume a small external capacitive load on every output
+set_load $drv_output_load [all_outputs]
+
+# --- Global DRVs ------------------------------------------------
+# Applied to the current design so they propagate to all nets/ports
+set_max_transition  $drv_max_transition  [current_design]
+set_max_capacitance $drv_max_capacitance [current_design]
+set_max_fanout      $drv_max_fanout      [current_design]
